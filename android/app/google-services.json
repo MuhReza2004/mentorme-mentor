@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "518757464681",
+    "firebase_url": "https://mentorme-2e120-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "mentorme-2e120",
+    "storage_bucket": "mentorme-2e120.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:518757464681:android:a73d45b9631db1938b80f8",
+        "android_client_info": {
+          "package_name": "com.example.mentorme"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-wfEdt0ez6p5_KJRWaPAjaQ64Rje0jxo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:518757464681:android:8dbaf68ab3a56ca78b80f8",
+        "android_client_info": {
+          "package_name": "com.example.mentormementor"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-wfEdt0ez6p5_KJRWaPAjaQ64Rje0jxo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
