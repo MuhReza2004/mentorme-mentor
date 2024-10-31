@@ -54,11 +54,12 @@ class _RegisterPageState extends State<RegisterPage> {
                 .trim(), // Assuming you meant phone
             'email': emailTextEditingController.text.trim(),
             'password': hashedPassword,
+            'role': 'mentor',
           };
 
           DatabaseReference userRef = FirebaseDatabase.instance
               .ref()
-              .child('users/${currentUser!.uid}');
+              .child('users_mentor/${currentUser!.uid}');
 
           await userRef.set(userData); // Save user data to Firebase
         }
@@ -273,7 +274,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                       SizedBox(height: 10),
                       TextFormField(
-                        obscureText: true,
+                        obscureText: (!_passwordVisible),
                         inputFormatters: [
                           LengthLimitingTextInputFormatter(50),
                         ],
