@@ -3,6 +3,9 @@ import 'package:mentormementor/Screen/SplashScreen.dart';
 import 'package:mentormementor/Screen/projectForMentor.dart';
 import 'package:mentormementor/Screen/register.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:mentormementor/Screen/upload_page.dart';
+import 'package:mentormementor/services/storage/storage_service.dart';
+import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -10,7 +13,11 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(const MyApp());
+
+  runApp(
+    ChangeNotifierProvider(
+        create: (context) => StorageService(), child: const MyApp()),
+  );
 }
 
 class MyApp extends StatelessWidget {
