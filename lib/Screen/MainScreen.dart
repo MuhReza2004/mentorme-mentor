@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -12,6 +13,7 @@ class _MainStateScreen extends State<MainScreen>
     with SingleTickerProviderStateMixin {
   TabController? tabController;
   int selectedIndex = 0;
+  String userName = '';
 
   onItemClicked(int index) {
     if (tabController != null) {
@@ -28,6 +30,27 @@ class _MainStateScreen extends State<MainScreen>
     super.initState();
 
     tabController = TabController(length: 5, vsync: this);
+    getUserData();
+  }
+
+  Future<void> getUserData() async {
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId != null) {
+        final docSnapshot = await FirebaseFirestore.instance
+            .collection('users_mentor')
+            .doc(userId)
+            .get();
+
+        if (docSnapshot.exists) {
+          setState(() {
+            userName = docSnapshot.get('nama') ?? 'User';
+          });
+        }
+      }
+    } catch (e) {
+      print('Error getting user data: $e');
+    }
   }
 
   @override
@@ -41,19 +64,19 @@ class _MainStateScreen extends State<MainScreen>
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Row(
+            Row(
               children: [
-                CircleAvatar(
+                const CircleAvatar(
                   radius: 24,
-                  backgroundImage: AssetImage('assets/User.jpg'),
+                  backgroundImage: AssetImage('assets/person.png'),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Hi! Zidan',
-                      style: TextStyle(
+                      'Hi! $userName',
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -149,5 +172,11 @@ class _MainStateScreen extends State<MainScreen>
         onTap: onItemClicked,
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    tabController?.dispose();
+    super.dispose();
   }
 }

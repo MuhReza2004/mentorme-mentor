@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mentormementor/Screen/login.dart';
-import 'package:mentormementor/Screen/register.dart';
+import 'package:mentormementor/Screen/register_page1.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -142,7 +142,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => RegisterPage(),
+                          builder: (context) => RegisterPage1(),
                         ),
                       );
                     },

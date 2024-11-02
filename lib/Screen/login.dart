@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:mentormementor/Global/Fontstyle.dart';
 import 'package:mentormementor/Global/global.dart';
 import 'package:mentormementor/Screen/MainScreen.dart';
-import 'package:mentormementor/Screen/register.dart';
+import 'package:mentormementor/Screen/register_page1.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -237,7 +237,7 @@ class _LoginPageState extends State<LoginPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const RegisterPage(),
+                            builder: (context) => const RegisterPage1(),
                           ),
                         );
                       },

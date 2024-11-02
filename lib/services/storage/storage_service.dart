@@ -3,97 +3,102 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class StorageService with ChangeNotifier {
-  // firebase storage
-  final FirebaseStorage storage = FirebaseStorage.instance;
-
-  //Image are stored in firebase storage as downloadURLs
-  List<String> _imageUrls = [];
-
-  //Loading status
-  bool _isLoading = false;
-
-  //Uploading status
-  bool _isUploading = false;
-
-  //getter image
+class StorageService extends ChangeNotifier {
+  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final List<String> _imageUrls = [];
   List<String> get imageUrls => _imageUrls;
-  bool get isLoading => _isLoading;
-  bool get isUploading => _isUploading;
 
-  //read image
-  Future<void> fetchImages() async {
-    // start loading
-    _isLoading = true;
+  Future<void> uploadImage() async {
+    try {
+      final String? userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) {
+        throw Exception('User tidak ditemukan');
+      }
 
-    final ListResult result = await storage.ref('uploadded_images/').listAll();
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 70,
+      );
 
-    final urls =
-        await Future.wait(result.items.map((ref) => ref.getDownloadURL()));
-    // upadate urls
-    _imageUrls = urls;
+      if (image == null) return;
 
-    // stop loading
-    _isLoading = false;
+      final String fileName = 'ktp_$userId.jpg';
 
-    // update ui
-    notifyListeners();
+      final Reference storageRef = _storage.ref().child('ktp_images/$fileName');
+
+      final UploadTask uploadTask = storageRef.putFile(File(image.path));
+
+      final TaskSnapshot snapshot = await uploadTask;
+
+      final String downloadUrl = await snapshot.ref.getDownloadURL();
+
+      _imageUrls.add(downloadUrl);
+
+      await FirebaseFirestore.instance
+          .collection('users_mentor')
+          .doc(userId)
+          .set({
+        'ktpImageUrl': downloadUrl,
+      }, SetOptions(merge: true));
+
+      notifyListeners();
+    } catch (e) {
+      print('Error uploading image: $e');
+      rethrow;
+    }
   }
 
-  //Deleting image
-  Future<void> deleteImages(String imageUrl) async {
+  Future<void> deleteImage(String imageUrl) async {
     try {
       _imageUrls.remove(imageUrl);
 
-      final String Path = extractPathFromUrl(imageUrl);
-      await storage.ref('uploadded_images/$Path').delete();
+      final Reference ref = _storage.refFromURL(imageUrl);
+
+      await ref.delete();
+
+      final String? userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .update({
+          'ktpImageUrl': null,
+        });
+      }
+
+      notifyListeners();
     } catch (e) {
-      print("error deleting image: $e");
+      print('Error deleting image: $e');
+      rethrow;
     }
-
-    notifyListeners();
   }
 
-  String extractPathFromUrl(String url) {
-    Uri uri = Uri.parse(url);
-
-    String encodedPath = uri.pathSegments.last;
-
-    return Uri.decodeComponent(encodedPath);
-  }
-
-// upload image
-  Future<void> uploadImage() async {
-    _isUploading = true;
-    notifyListeners();
-
-    // Pick Image
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
-
-    if (image == null) return;
-
-    File file = File(image.path);
-
+  Future<void> loadExistingImage() async {
     try {
-      // Define path
-      String firePath = 'uploadded_images/${DateTime.now()}.png';
-      // Upload
-      await storage.ref(firePath).putFile(file);
-      // after upload, fetch url
-      String downloadUrl = await storage.ref(firePath).getDownloadURL();
-      // update image
-      _imageUrls.add(downloadUrl);
-      notifyListeners();
-    }
+      final String? userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) return;
 
-    // handle eror
-    catch (e) {
-      print("error uploading image: $e");
-    } finally {
-      _isUploading = false;
-      notifyListeners();
+      final DocumentSnapshot doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      if (doc.exists) {
+        final data = doc.data() as Map<String, dynamic>;
+        final String? ktpImageUrl = data['ktpImageUrl'] as String?;
+
+        if (ktpImageUrl != null && !_imageUrls.contains(ktpImageUrl)) {
+          _imageUrls.add(ktpImageUrl);
+          notifyListeners();
+        }
+      }
+    } catch (e) {
+      print('Error loading existing image: $e');
+      rethrow;
     }
   }
 }
