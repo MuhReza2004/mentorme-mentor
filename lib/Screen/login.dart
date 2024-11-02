@@ -1,9 +1,11 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mentormementor/Global/Fontstyle.dart';
+import 'package:mentormementor/Global/global.dart';
 import 'package:mentormementor/Screen/MainScreen.dart';
 import 'package:mentormementor/Screen/register.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -13,51 +15,96 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  // Controller untuk input fields
-  final TextEditingController emailController = TextEditingController();
-  final TextEditingController passwordController = TextEditingController();
+  final emailTextEditingController = TextEditingController();
+  final passwordTextEditingController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
-  // Instance Firebase Auth
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool _passwordVisible = false;
 
-  // Function untuk handle login
-  Future<void> loginUser() async {
-    try {
-      final UserCredential userCredential =
-          await _auth.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
-
-      if (userCredential.user != null) {
-        // Mengambil data user dari Firestore
-        final DocumentSnapshot userDoc = await FirebaseFirestore.instance
-            .collection('users_mentor')
-            .doc(userCredential.user!.uid)
-            .get();
-
-        if (userDoc.exists) {
-          // Data user ditemukan
-          Fluttertoast.showToast(msg: "Login berhasil!");
-
-          // Navigate ke MainScreen
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const MainScreen(),
+  void showLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Color(0xFFE0FFF3),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 20, vertical: 10), // Atur padding secukupnya
+            child: Column(
+              mainAxisSize:
+                  MainAxisSize.min, // Supaya kotak menyesuaikan dengan konten
+              children: [
+                Image.asset(
+                  'assets/Logo.png',
+                  width: 60, // Sesuaikan ukuran logo
+                  height: 60,
+                ),
+                const SizedBox(height: 15),
+                Row(
+                  mainAxisSize: MainAxisSize
+                      .min, // Menyesuaikan lebar berdasarkan isi Row
+                  children: [
+                    CircularProgressIndicator(
+                      color: Colors.green,
+                    ),
+                    const SizedBox(width: 15),
+                    const Text(
+                      "Sedang masuk...",
+                      style: Subjudulstyle.defaultTextStyle,
+                    ),
+                  ],
+                ),
+              ],
             ),
-          );
-        } else {
-          await _auth.signOut();
-          Fluttertoast.showToast(msg: "Data user tidak ditemukan!");
+          ),
+        );
+      },
+    );
+  }
+
+  void hideLoadingDialog() {
+    Navigator.of(context, rootNavigator: true).pop();
+  }
+
+  void loginUser() async {
+    if (_formKey.currentState!.validate()) {
+      showLoadingDialog();
+
+      try {
+        UserCredential userCredential =
+            await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: emailTextEditingController.text.trim(),
+          password: passwordTextEditingController.text.trim(),
+        );
+
+        if (userCredential.user != null) {
+          DocumentSnapshot userDoc = await FirebaseFirestore.instance
+              .collection('users_mentor')
+              .doc(userCredential.user!.uid)
+              .get();
+
+          if (userDoc.exists) {
+            currentUser = userCredential.user;
+
+            Fluttertoast.showToast(msg: "Login berhasil");
+            hideLoadingDialog();
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (c) => const MainScreen()),
+            );
+          } else {
+            hideLoadingDialog();
+            Fluttertoast.showToast(msg: "Data pengguna tidak ditemukan!");
+            await FirebaseAuth.instance.signOut();
+          }
         }
-      } else {
-        await _auth.signOut();
-        Fluttertoast.showToast(msg: "Login gagal!");
+      } catch (error) {
+        hideLoadingDialog();
+        Fluttertoast.showToast(msg: "$error");
       }
-    } catch (e) {
-      await _auth.signOut();
-      Fluttertoast.showToast(msg: "Terjadi kesalahan: $e");
+    } else {
+      Fluttertoast.showToast(msg: "Mohon isi semua data dengan benar");
     }
   }
 
@@ -66,153 +113,146 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFE0FFF3),
       body: SingleChildScrollView(
-        // Agar keyboard tidak menutupi input
         child: Padding(
           padding: const EdgeInsets.all(20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset(
-                'assets/Logo.png', // Ganti dengan path logo
-                width: 200,
-                height: 200,
-              ),
-              const Text(
-                'MentorMe',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/Logo.png', // Ganti dengan path logo
+                  width: 150,
+                  height: 150,
                 ),
-              ),
-              const SizedBox(height: 5),
-              const Text(
-                'LOGIN',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 5),
-              const Text(
-                'Masukkan email dan password Anda',
-                style: TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 30),
-              TextField(
-                decoration: InputDecoration(
-                  hintText: 'E-mail',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
+                const SizedBox(height: 10),
+                const Text('MentorME', style: judulstyle.defaultTextStyle),
+                const SizedBox(height: 10),
+                const Text('Login', style: Subjudulstyle.defaultTextStyle),
+                const SizedBox(height: 30),
+                TextFormField(
+                  controller: emailTextEditingController,
+                  decoration: InputDecoration(
+                    hintText: 'Email',
+                    hintStyle: Captionsstyle.defaultTextStyle,
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(40),
+                      borderSide: BorderSide.none,
+                    ),
+                    prefixIcon: const Icon(Icons.email),
                   ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  validator: (text) {
+                    if (text == null || text.isEmpty) {
+                      return 'Tidak boleh kosong';
+                    }
+                    return null;
+                  },
                 ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                obscureText: true, // Menyembunyikan password
-                decoration: InputDecoration(
-                  hintText: 'Kata Sandi',
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding:
-                      const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                ),
-              ),
-              const SizedBox(height: 30),
-              const Text(
-                'Or social login',
-                style: TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 15),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // IconButton(
-                  //   onPressed: () {
-                  //     // Aksi login dengan Apple
-                  //   },
-                  //   icon: const Icon(Icons.apple),
-                  //   iconSize: 40,
-                  // ),
-                  // const SizedBox(width: 15),
-                  IconButton(
-                    onPressed: () {
-                      // Aksi login dengan Google
-                    },
-                    icon: Image.asset(
-                      'assets/google.png',
-                      width: 27, // Lebar gambar
-                      height: 27,
+                const SizedBox(height: 10),
+                TextFormField(
+                  controller: passwordTextEditingController,
+                  obscureText: !_passwordVisible,
+                  decoration: InputDecoration(
+                    hintText: 'Password',
+                    hintStyle: Captionsstyle.defaultTextStyle,
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(40),
+                      borderSide: BorderSide.none,
+                    ),
+                    prefixIcon: const Icon(Icons.security),
+                    suffixIcon: IconButton(
+                      icon: Icon(_passwordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off),
+                      onPressed: () {
+                        setState(() {
+                          _passwordVisible = !_passwordVisible;
+                        });
+                      },
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 25),
-              ElevatedButton(
-                onPressed: () {
-                  // Aksi login
-                  loginUser();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xfffffffff),
-                  minimumSize: const Size.fromHeight(50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(25),
-                  ),
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  validator: (text) {
+                    if (text == null || text.isEmpty) {
+                      return 'Tidak boleh kosong';
+                    }
+                    return null;
+                  },
                 ),
-                child: const Text(
-                  'Masuk',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Color(0xFF339989),
-                  ),
+                SizedBox(
+                  height: 25,
                 ),
-              ),
-              const SizedBox(height: 15),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'Belum punya akun?',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      // Aksi navigasi ke halaman daftar
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const RegisterPage()),
-                      );
-                    },
-                    child: const Text(
-                      'Daftar disini',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Color(0xFF339989),
+                const Text(
+                  'Or social login',
+                  style: TextStyle(fontSize: 16),
+                ),
+                SizedBox(
+                  height: 10,
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        // Aksi login dengan Google
+                      },
+                      icon: Image.asset(
+                        'assets/google.png',
+                        width: 27, // Lebar gambar
+                        height: 27,
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: loginUser,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF339989),
+                    minimumSize: const Size.fromHeight(50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              IconButton(
-                onPressed: () {
-                  // Aksi untuk tombol fingerprint
-                },
-                icon: const Icon(Icons.fingerprint),
-                iconSize: 40,
-              ),
-            ],
+                  child: const Text(
+                    'Masuk',
+                    style: TextStyle(fontSize: 18, color: Colors.white),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      'Belum punya akun?',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const RegisterPage(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Daftar di sini',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Color(0xFF339989),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
