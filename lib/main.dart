@@ -5,6 +5,7 @@ import 'package:mentormementor/Screen/register.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:mentormementor/Screen/upload_page.dart';
 import 'package:mentormementor/services/storage/storage_service.dart';
+import 'package:mentormementor/tes.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 
@@ -27,7 +28,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const RegisterPage(),
+      home: const home(),
     );
   }
 }
