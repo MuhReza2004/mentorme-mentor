@@ -1,5 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -55,23 +55,23 @@ class _RegisterPageState extends State<RegisterPage> {
             'email': emailTextEditingController.text.trim(),
             'password': hashedPassword,
             'role': 'mentor',
+            'createdAt': FieldValue.serverTimestamp(),
           };
 
-          DatabaseReference userRef = FirebaseDatabase.instance
-              .ref()
-              .child('users_mentor/${currentUser!.uid}');
+          await FirebaseFirestore.instance
+              .collection('users_mentor')
+              .doc(currentUser!.uid)
+              .set(userData);
 
-          await userRef.set(userData); // Save user data to Firebase
+          await Fluttertoast.showToast(msg: "Akun berhasil dibuat");
+          Navigator.push(
+              context, MaterialPageRoute(builder: (c) => const LoginPage()));
         }
-
-        await Fluttertoast.showToast(msg: "Akun berhasil dibuat");
-        Navigator.push(
-            context, MaterialPageRoute(builder: (c) => const LoginPage()));
       } catch (error) {
         Fluttertoast.showToast(msg: "Error Registration: $error");
       }
     } else {
-      Fluttertoast.showToast(msg: "Error Registration: Please fill all fields");
+      Fluttertoast.showToast(msg: "Error Registration: Mohon isi semua field");
     }
   }
 

@@ -1,9 +1,65 @@
 import 'package:flutter/material.dart';
 import 'package:mentormementor/Screen/MainScreen.dart';
 import 'package:mentormementor/Screen/register.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  // Controller untuk input fields
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
+  // Instance Firebase Auth
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // Function untuk handle login
+  Future<void> loginUser() async {
+    try {
+      final UserCredential userCredential =
+          await _auth.signInWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      if (userCredential.user != null) {
+        // Mengambil data user dari Firestore
+        final DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users_mentor')
+            .doc(userCredential.user!.uid)
+            .get();
+
+        if (userDoc.exists) {
+          // Data user ditemukan
+          Fluttertoast.showToast(msg: "Login berhasil!");
+
+          // Navigate ke MainScreen
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const MainScreen(),
+            ),
+          );
+        } else {
+          await _auth.signOut();
+          Fluttertoast.showToast(msg: "Data user tidak ditemukan!");
+        }
+      } else {
+        await _auth.signOut();
+        Fluttertoast.showToast(msg: "Login gagal!");
+      }
+    } catch (e) {
+      await _auth.signOut();
+      Fluttertoast.showToast(msg: "Terjadi kesalahan: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,12 +160,7 @@ class LoginPage extends StatelessWidget {
               ElevatedButton(
                 onPressed: () {
                   // Aksi login
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const MainScreen(),
-                    ),
-                  );
+                  loginUser();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xfffffffff),
