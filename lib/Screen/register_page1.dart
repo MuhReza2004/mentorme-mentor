@@ -22,39 +22,19 @@ class _RegisterPage1State extends State<RegisterPage1> {
 
   Future<void> _registerStep1() async {
     if (_formKey.currentState!.validate()) {
-      try {
-        // Buat user di Firebase Auth
-        UserCredential userCredential =
-            await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: emailController.text.trim(),
-          password: passwordController.text.trim(),
-        );
-
-        // Simpan data awal ke Firestore
-        await FirebaseFirestore.instance
-            .collection('users_mentor')
-            .doc(userCredential.user!.uid)
-            .set({
-          'nama': namaController.text.trim(),
-          'email': emailController.text.trim(),
-          'phone': phoneController.text.trim(),
-          'createdAt': FieldValue.serverTimestamp(),
-          'role': 'mentor',
-          'registrationComplete': false, // Flag untuk status registrasi
-        });
-
-        // Navigasi ke halaman register kedua
-        if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) =>
-                RegisterPage2(userId: userCredential.user!.uid),
+      // Navigasi ke halaman register kedua dengan membawa data
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => RegisterPage2(
+            nama: namaController.text.trim(),
+            email: emailController.text.trim(),
+            phone: phoneController.text.trim(),
+            password: passwordController.text.trim(),
           ),
-        );
-      } catch (e) {
-        Fluttertoast.showToast(msg: "Email Sudah Terdafar");
-      }
+        ),
+      );
     }
   }
 

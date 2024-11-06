@@ -3,62 +3,114 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:mentormementor/Screen/login.dart';
-import 'package:mentormementor/Screen/register_page3.dart';
 import 'package:mentormementor/services/storage/storage_service.dart';
 import 'package:provider/provider.dart';
 
-class RegisterPage2 extends StatefulWidget {
+class RegisterPage3 extends StatefulWidget {
   final String nama;
   final String email;
   final String phone;
   final String password;
+  final String nik;
+  final String ktpImageUrl;
 
-  const RegisterPage2({
+  const RegisterPage3({
     super.key,
     required this.nama,
     required this.email,
     required this.phone,
     required this.password,
+    required this.nik,
+    required this.ktpImageUrl,
   });
 
   @override
-  State<RegisterPage2> createState() => _RegisterPage2State();
+  State<RegisterPage3> createState() => _RegisterPage3State();
 }
 
-class _RegisterPage2State extends State<RegisterPage2> {
-  final TextEditingController _nikController = TextEditingController();
-
-  Future<void> _completeRegistration() async {
+class _RegisterPage3State extends State<RegisterPage3> {
+  Future<void> _finalizeRegistration() async {
     try {
-      if (_nikController.text.isEmpty) {
-        Fluttertoast.showToast(msg: "Mohon isi nomor KTP");
-        return;
-      }
-
       final storageService =
           Provider.of<StorageService>(context, listen: false);
 
-      if (storageService.ktpImageUrl == null) {
-        Fluttertoast.showToast(msg: "Mohon upload foto KTP");
+      // Cek apakah sertifikat sudah diupload
+      if (storageService.sertifikatImageUrl == null) {
+        Fluttertoast.showToast(
+          msg: "Mohon upload foto sertifikat",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.CENTER,
+        );
         return;
       }
 
-      if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => RegisterPage3(
-            nama: widget.nama,
-            email: widget.email,
-            phone: widget.phone,
-            password: widget.password,
-            nik: _nikController.text.trim(),
-            ktpImageUrl: storageService.ktpImageUrl!,
-          ),
-        ),
+      // Buat user Auth terlebih dahulu
+      UserCredential userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: widget.email,
+        password: widget.password,
+      );
+
+      // Pindahkan file ke folder permanen dengan userId
+      await storageService.moveFilesToPermanent(userCredential.user!.uid);
+
+      // Data untuk Firestore
+      final userData = {
+        'nama': widget.nama,
+        'email': widget.email,
+        'phone': widget.phone,
+        'nik': widget.nik,
+        'ktpImageUrl': storageService.ktpImageUrl,
+        'sertifikatImageUrl': storageService.sertifikatImageUrl,
+        'createdAt': FieldValue.serverTimestamp(),
+        'role': 'mentor',
+        'registrationComplete': true,
+      };
+
+      try {
+        // Simpan ke Firestore
+        await FirebaseFirestore.instance
+            .collection('users_mentor')
+            .doc(userCredential.user!.uid)
+            .set(userData);
+
+        await FirebaseAuth.instance.signOut();
+
+        // Clear images setelah berhasil
+        storageService.clearImages();
+
+        Fluttertoast.showToast(
+          msg: "Registrasi berhasil!",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.CENTER,
+        );
+
+        if (!mounted) return;
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginPage()),
+          (route) => false,
+        );
+      } catch (firestoreError) {
+        // Jika gagal menyimpan ke Firestore, hapus user Auth
+        await userCredential.user?.delete();
+        throw Exception('Gagal menyimpan data: $firestoreError');
+      }
+    } on FirebaseAuthException catch (e) {
+      String errorMessage = 'Terjadi kesalahan saat registrasi';
+      if (e.code == 'email-already-in-use') {
+        errorMessage = 'Email sudah terdaftar';
+      }
+      Fluttertoast.showToast(
+        msg: errorMessage,
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.CENTER,
       );
     } catch (e) {
-      Fluttertoast.showToast(msg: "Error: ${e.toString()}");
+      Fluttertoast.showToast(
+        msg: "Error: ${e.toString()}",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.CENTER,
+      );
     }
   }
 
@@ -69,7 +121,7 @@ class _RegisterPage2State extends State<RegisterPage2> {
         return Scaffold(
           backgroundColor: const Color(0xFFE0FFF3),
           appBar: AppBar(
-            title: const Text('Upload KTP'),
+            title: const Text('Upload Sertifikat'),
             backgroundColor: const Color(0xFF339989),
           ),
           body: SingleChildScrollView(
@@ -79,7 +131,7 @@ class _RegisterPage2State extends State<RegisterPage2> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
-                    'Upload Foto KTP',
+                    'Upload Foto Sertifikat',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -89,7 +141,7 @@ class _RegisterPage2State extends State<RegisterPage2> {
                   GestureDetector(
                     onTap: () async {
                       try {
-                        await storageService.uploadImage(prefix: 'ktp');
+                        await storageService.uploadImage(prefix: 'sertifikat');
                       } catch (e) {
                         Fluttertoast.showToast(
                           msg: e.toString(),
@@ -104,35 +156,23 @@ class _RegisterPage2State extends State<RegisterPage2> {
                         border: Border.all(color: Colors.grey),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: storageService.ktpImageUrl == null
+                      child: storageService.sertifikatImageUrl == null
                           ? const Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(Icons.upload, size: 50),
-                                Text('Tap untuk upload foto KTP'),
+                                Text('Tap untuk upload foto sertifikat'),
                               ],
                             )
                           : Image.network(
-                              storageService.ktpImageUrl!,
+                              storageService.sertifikatImageUrl!,
                               fit: BoxFit.cover,
                             ),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  TextField(
-                    controller: _nikController,
-                    decoration: InputDecoration(
-                      labelText: 'Nomor KTP',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    keyboardType: TextInputType.number,
-                    maxLength: 16,
-                  ),
                   const SizedBox(height: 30),
                   ElevatedButton(
-                    onPressed: _completeRegistration,
+                    onPressed: _finalizeRegistration,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF339989),
                       minimumSize: const Size.fromHeight(50),
@@ -155,11 +195,5 @@ class _RegisterPage2State extends State<RegisterPage2> {
         );
       },
     );
-  }
-
-  @override
-  void dispose() {
-    _nikController.dispose();
-    super.dispose();
   }
 }

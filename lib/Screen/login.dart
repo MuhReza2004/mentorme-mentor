@@ -101,7 +101,7 @@ class _LoginPageState extends State<LoginPage> {
         }
       } catch (error) {
         hideLoadingDialog();
-        Fluttertoast.showToast(msg: "$error");
+        Fluttertoast.showToast(msg: "Email/Password salah!");
       }
     } else {
       Fluttertoast.showToast(msg: "Mohon isi semua data dengan benar");
@@ -126,7 +126,8 @@ class _LoginPageState extends State<LoginPage> {
                   height: 150,
                 ),
                 const SizedBox(height: 10),
-                const Text('MentorME', style: judulstyle.defaultTextStyle),
+                const Text('MentorME for Mentor',
+                    style: judulstyle.defaultTextStyle),
                 const SizedBox(height: 10),
                 const Text('Login', style: Subjudulstyle.defaultTextStyle),
                 const SizedBox(height: 30),

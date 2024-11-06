@@ -8,16 +8,19 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class StorageService extends ChangeNotifier {
   final FirebaseStorage _storage = FirebaseStorage.instance;
-  final List<String> _imageUrls = [];
-  List<String> get imageUrls => _imageUrls;
+  String? _ktpImageUrl;
+  String? _sertifikatImageUrl;
+  String? _tempUserId;
 
-  Future<void> uploadImage() async {
+  String? get ktpImageUrl => _ktpImageUrl;
+  String? get sertifikatImageUrl => _sertifikatImageUrl;
+
+  StorageService() {
+    _tempUserId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
+  }
+
+  Future<void> uploadImage({String? prefix}) async {
     try {
-      final String? userId = FirebaseAuth.instance.currentUser?.uid;
-      if (userId == null) {
-        throw Exception('User tidak ditemukan');
-      }
-
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(
         source: ImageSource.gallery,
@@ -26,79 +29,122 @@ class StorageService extends ChangeNotifier {
 
       if (image == null) return;
 
-      final String fileName = 'ktp_$userId.jpg';
+      final String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+      final String fileName = '${prefix ?? "image"}_$timestamp.jpg';
 
-      final Reference storageRef = _storage.ref().child('ktp_images/$fileName');
+      // Perbaikan path storage
+      String storagePath;
+      if (prefix == 'ktp') {
+        storagePath = 'temp_images/ktp/$fileName';
+      } else if (prefix == 'sertifikat') {
+        storagePath = 'temp_images/sertifikat/$fileName';
+      } else {
+        storagePath = 'temp_images/other/$fileName';
+      }
 
-      final UploadTask uploadTask = storageRef.putFile(File(image.path));
+      Reference storageRef = _storage.ref().child(storagePath);
 
-      final TaskSnapshot snapshot = await uploadTask;
+      // Upload file
+      final UploadTask uploadTask = storageRef.putFile(
+        File(image.path),
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
 
-      final String downloadUrl = await snapshot.ref.getDownloadURL();
+      // Monitor upload progress
+      uploadTask.snapshotEvents.listen(
+        (TaskSnapshot snapshot) {
+          print(
+              'Progress: ${snapshot.bytesTransferred}/${snapshot.totalBytes}');
+        },
+        onError: (e) {
+          print('Error during upload: $e');
+        },
+      );
 
-      _imageUrls.add(downloadUrl);
+      // Tunggu sampai upload selesai
+      final TaskSnapshot taskSnapshot = await uploadTask;
 
-      await FirebaseFirestore.instance
-          .collection('users_mentor')
-          .doc(userId)
-          .set({
-        'ktpImageUrl': downloadUrl,
-      }, SetOptions(merge: true));
+      // Dapatkan URL download
+      final String downloadUrl = await taskSnapshot.ref.getDownloadURL();
+
+      // Update URL sesuai prefix
+      if (prefix == 'ktp') {
+        _ktpImageUrl = downloadUrl;
+      } else if (prefix == 'sertifikat') {
+        _sertifikatImageUrl = downloadUrl;
+      }
 
       notifyListeners();
     } catch (e) {
       print('Error uploading image: $e');
-      rethrow;
+      throw Exception('Gagal mengupload gambar: $e');
     }
   }
 
-  Future<void> deleteImage(String imageUrl) async {
+  Future<void> moveFilesToPermanent(String userId) async {
     try {
-      _imageUrls.remove(imageUrl);
+      // Pindahkan KTP
+      if (_ktpImageUrl != null) {
+        final Reference oldRef = _storage.refFromURL(_ktpImageUrl!);
+        final String fileName = oldRef.name;
+        final Reference newRef =
+            _storage.ref().child('users/$userId/ktp/$fileName');
 
-      final Reference ref = _storage.refFromURL(imageUrl);
+        // Upload ke lokasi baru
+        final File tempFile = File('${Directory.systemTemp.path}/$fileName');
+        await oldRef.writeToFile(tempFile);
+        final UploadTask uploadTask = newRef.putFile(tempFile);
+        await uploadTask;
 
-      await ref.delete();
+        // Update URL
+        _ktpImageUrl = await newRef.getDownloadURL();
 
-      final String? userId = FirebaseAuth.instance.currentUser?.uid;
-      if (userId != null) {
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .update({
-          'ktpImageUrl': null,
-        });
-      }
-
-      notifyListeners();
-    } catch (e) {
-      print('Error deleting image: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> loadExistingImage() async {
-    try {
-      final String? userId = FirebaseAuth.instance.currentUser?.uid;
-      if (userId == null) return;
-
-      final DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .get();
-
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>;
-        final String? ktpImageUrl = data['ktpImageUrl'] as String?;
-
-        if (ktpImageUrl != null && !_imageUrls.contains(ktpImageUrl)) {
-          _imageUrls.add(ktpImageUrl);
-          notifyListeners();
+        // Hapus file temporary
+        await tempFile.delete();
+        try {
+          await oldRef.delete();
+        } catch (e) {
+          print('Error deleting old KTP file: $e');
         }
       }
+
+      // Pindahkan Sertifikat
+      if (_sertifikatImageUrl != null) {
+        final Reference oldRef = _storage.refFromURL(_sertifikatImageUrl!);
+        final String fileName = oldRef.name;
+        final Reference newRef =
+            _storage.ref().child('users/$userId/sertifikat/$fileName');
+
+        // Upload ke lokasi baru
+        final File tempFile = File('${Directory.systemTemp.path}/$fileName');
+        await oldRef.writeToFile(tempFile);
+        final UploadTask uploadTask = newRef.putFile(tempFile);
+        await uploadTask;
+
+        // Update URL
+        _sertifikatImageUrl = await newRef.getDownloadURL();
+
+        // Hapus file temporary
+        await tempFile.delete();
+        try {
+          await oldRef.delete();
+        } catch (e) {
+          print('Error deleting old sertifikat file: $e');
+        }
+      }
+
+      _tempUserId = userId;
+      notifyListeners();
     } catch (e) {
-      print('Error loading existing image: $e');
-      rethrow;
+      print('Error moving files: $e');
+      throw Exception('Gagal memindahkan file: $e');
     }
+  }
+
+  void clearImages() {
+    _ktpImageUrl = null;
+    _sertifikatImageUrl = null;
+    _tempUserId = null;
+    notifyListeners();
   }
 }
