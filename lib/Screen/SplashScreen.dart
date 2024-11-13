@@ -142,7 +142,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => RegisterPage1(),
+                          builder: (context) => const RegisterPage1(),
                         ),
                       );
                     },

@@ -2,9 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:mentormementor/Global/Fontstyle.dart';
+import 'package:mentormementor/Global/fontStyle.dart';
 import 'package:mentormementor/Global/global.dart';
-import 'package:mentormementor/Screen/MainScreen.dart';
+import 'package:mentormementor/Screen/mainScreen.dart';
 import 'package:mentormementor/Screen/register_page1.dart';
 
 class LoginPage extends StatefulWidget {
@@ -27,7 +27,7 @@ class _LoginPageState extends State<LoginPage> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return Dialog(
-          backgroundColor: Color(0xFFE0FFF3),
+          backgroundColor: const Color(0xFFE0FFF3),
           child: Padding(
             padding: const EdgeInsets.symmetric(
                 horizontal: 20, vertical: 10), // Atur padding secukupnya
@@ -41,15 +41,15 @@ class _LoginPageState extends State<LoginPage> {
                   height: 60,
                 ),
                 const SizedBox(height: 15),
-                Row(
+                const Row(
                   mainAxisSize: MainAxisSize
                       .min, // Menyesuaikan lebar berdasarkan isi Row
                   children: [
                     CircularProgressIndicator(
                       color: Colors.green,
                     ),
-                    const SizedBox(width: 15),
-                    const Text(
+                    SizedBox(width: 15),
+                    Text(
                       "Sedang masuk...",
                       style: Subjudulstyle.defaultTextStyle,
                     ),
@@ -185,14 +185,14 @@ class _LoginPageState extends State<LoginPage> {
                     return null;
                   },
                 ),
-                SizedBox(
+                const SizedBox(
                   height: 25,
                 ),
                 const Text(
                   'Or social login',
                   style: TextStyle(fontSize: 16),
                 ),
-                SizedBox(
+                const SizedBox(
                   height: 10,
                 ),
                 Row(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mentormementor/services/storage/storage_service.dart';
 
 class ProjectForMentorPage extends StatefulWidget {
   const ProjectForMentorPage({super.key});
@@ -117,10 +118,10 @@ class _TambahProjectPageState extends State<TambahProjectPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFE0FFF3),
+      backgroundColor: const Color(0xFFE0FFF3),
       appBar: AppBar(
         title: const Text("Tambah Project Baru"),
-        backgroundColor: Color(0xFFE0FFF3),
+        backgroundColor: const Color(0xFFE0FFF3),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -131,7 +132,9 @@ class _TambahProjectPageState extends State<TambahProjectPage> {
             _buildSectionTitle("Upload Foto Kamu"),
             const SizedBox(height: 10),
             GestureDetector(
-              onTap: () {
+              onTap: () async
+              {
+                await StorageService().uploadImage(prefix: 'ktp');
                 // Aksi yang akan dijalankan saat Container di-tap,
                 // misal: membuka galeri atau kamera
                 // ...
@@ -157,17 +160,11 @@ class _TambahProjectPageState extends State<TambahProjectPage> {
             _buildSectionTitle("Informasi Project"),
             const SizedBox(height: 10),
             _buildTextField(
-              "HTML (Hypertext Markup Language) adalah bahasa markup\nyang digunakan untuk membuat struktur dasar halaman web.\nDalam materi pengenalan ini, Anda akan mempelajari elemen\nHTML dasar yang digunakan untuk membangun struktur\nhalaman, seperti heading, paragraf, gambar, dan link.",
+              "HTML (Hypertext Markup Language) adalah bahasa...",
               enabled: false,
             ),
             const SizedBox(height: 20),
-
-            // Video Project
-            _buildSectionTitle("Video Project"),
-            const SizedBox(height: 10),
-            _buildAddButton("Tambahkan Video yang menjelaskan project anda"),
-            const SizedBox(height: 20),
-
+            
             // Materi Ajar
             _buildSectionTitle("Materi Ajar"),
             const SizedBox(height: 10),
@@ -177,23 +174,15 @@ class _TambahProjectPageState extends State<TambahProjectPage> {
             // Preview Video
             _buildSectionTitle("Preview Video"),
             const SizedBox(height: 10),
-            Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Center(
-                child: Icon(Icons.play_circle_outline, size: 50),
-              ),
-            ),
-            const SizedBox(height: 20),
+            _buildTextField("Masukkan Link Preview Video"),
+            const SizedBox(height: 30),
 
-            // Harga Project
+            // harga Project
             _buildSectionTitle("Harga Project"),
             const SizedBox(height: 10),
             _buildTextField("Masukkan harga"),
             const SizedBox(height: 30),
+
 
             // Tombol
             Row(
@@ -222,8 +211,12 @@ class _TambahProjectPageState extends State<TambahProjectPage> {
 
   // Fungsi untuk membuat TextField
   Widget _buildTextField(String hintText, {bool enabled = true}) {
+     final focusNode = FocusNode();
+
     return TextField(
-      enabled: enabled,
+      focusNode: focusNode,
+      maxLines: null,
+      enabled: true,
       decoration: InputDecoration(
         hintText: hintText,
         filled: true,
@@ -244,26 +237,25 @@ class _TambahProjectPageState extends State<TambahProjectPage> {
       onPressed: () {
         // Aksi ketika tombol "Tambahkan" ditekan
       },
-      style: OutlinedButton.styleFrom(
-        side: const BorderSide(color: Colors.green),
-        padding: const EdgeInsets.symmetric(vertical: 15),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 16),
-            child: Text(
-              text,
-              style: const TextStyle(color: Colors.green),
-            ),
+style: OutlinedButton.styleFrom(
+      side: const BorderSide(color: Colors.black),
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0), // Adjust padding here
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween, // Aligns content horizontally
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 16.0), // Adjust left padding for text
+          child: Text(
+            text,
+            style: const TextStyle(color: Colors.black),
           ),
-          // Tambahkan SizedBox di sebelah KIRI ikon
-          const SizedBox(width: 16),
-          const Icon(Icons.add, color: Colors.green),
-        ],
-      ),
-    );
+        ),
+        const SizedBox(width: 16.0), // Spacing between text and icon
+        const Icon(Icons.add_circle, color: Colors.blue),
+      ],
+    ),
+  );
   }
 
   // Fungsi untuk membuat tombol "Batalkan"

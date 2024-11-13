@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:mentormementor/Screen/Pelajaranku.dart';
+import 'package:mentormementor/Screen/consultation.dart';
+import 'package:mentormementor/Screen/profile.dart';
+import 'package:mentormementor/Screen/projectForMentor.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -29,7 +33,7 @@ class _MainStateScreen extends State<MainScreen>
   void initState() {
     super.initState();
 
-    tabController = TabController(length: 5, vsync: this);
+    tabController = TabController(length: 4, vsync: this);
     getUserData();
   }
 
@@ -57,7 +61,7 @@ class _MainStateScreen extends State<MainScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
+      appBar: selectedIndex == 3 ? null : AppBar(
         backgroundColor: const Color(0xffE0FFF3),
         scrolledUnderElevation: 0,
         toolbarHeight: 100,
@@ -68,7 +72,7 @@ class _MainStateScreen extends State<MainScreen>
               children: [
                 const CircleAvatar(
                   radius: 24,
-                  backgroundImage: AssetImage('assets/person.png'),
+                  backgroundImage: AssetImage('assets/User.jpg'),
                 ),
                 const SizedBox(width: 8),
                 Column(
@@ -138,16 +142,20 @@ class _MainStateScreen extends State<MainScreen>
         ),
       ),
       body: TabBarView(
-        physics: NeverScrollableScrollPhysics(),
+        physics: const NeverScrollableScrollPhysics(),
         controller: tabController,
-        children: [
-          // BerandaPage(),
-          // ProjectPage(),
-          // Pelajaranku(),
+        children:  [
+
+          //*ALL MAIN SCREEN*//
+
+           Pelajaranku(),
+           ProjectForMentorPage(),
+           ConsultationScreen(),
+           ProfilePage(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
-        items: [
+        items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.layers),
             label: 'Project',
@@ -166,7 +174,7 @@ class _MainStateScreen extends State<MainScreen>
           ),
         ],
         type: BottomNavigationBarType.fixed,
-        selectedLabelStyle: TextStyle(fontSize: 14),
+        selectedLabelStyle: const TextStyle(fontSize: 14),
         showUnselectedLabels: true,
         currentIndex: selectedIndex,
         onTap: onItemClicked,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mentormementor/Screen/SplashScreen.dart';
+import 'package:mentormementor/Screen/mainScreen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:mentormementor/services/storage/storage_service.dart';
 import 'package:provider/provider.dart';
@@ -22,9 +22,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const SplashScreen(),
+      home: MainScreen(),
     );
   }
 }

@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:mentormementor/Screen/login.dart';
 import 'package:mentormementor/Screen/register_page3.dart';
 import 'package:mentormementor/services/storage/storage_service.dart';
 import 'package:provider/provider.dart';
